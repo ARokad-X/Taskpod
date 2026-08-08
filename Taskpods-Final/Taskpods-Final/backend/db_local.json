@@ -1,0 +1,33 @@
+{
+  "users": [
+    {
+      "_id": "nkbwypaqkyj4mpajert19",
+      "createdAt": "2026-08-08T18:31:29.845Z",
+      "name": "Test User",
+      "email": "test@example.com",
+      "password": "$2b$10$6A9kBAzDYFXgzu9tN2T2mOfdvDu0fGCqwWYfvRdQv1bYVzcdJzh0K"
+    },
+    {
+      "_id": "hg72x1z29u7q6ol0zpwwx",
+      "createdAt": "2026-08-08T18:34:37.612Z",
+      "name": "Demo User",
+      "email": "demo@test.com",
+      "password": "$2b$10$Wc2GIrlQxSTG2OVv3dMHjeXUo2Mc8saUBzbAgGZU9hh.Am7yVb9zG"
+    },
+    {
+      "_id": "hpjj5njyuil4qqx2iwd7bd",
+      "createdAt": "2026-08-08T18:44:29.557Z",
+      "name": "New User",
+      "email": "newuser@test.com",
+      "password": "$2b$10$HuLZM2EtBaCwWMy3ZIouqeClqt9GC3G9AQzB.ggI13P2nygjLSI4i"
+    },
+    {
+      "_id": "r6l65hx39zqg2c8hnpayqm",
+      "createdAt": "2026-08-08T20:30:18.837Z",
+      "name": "Preet Mehta",
+      "email": "preet@gmail.com",
+      "password": "$2b$10$Acb0rv16l0ioolXb7q2dJuiJeUaFTTAEam9N81WrW5uDuYxd/yHYu"
+    }
+  ],
+  "tasks": []
+}
