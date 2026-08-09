@@ -16,7 +16,7 @@ const Layout = ({ user, onLogout }) => {
       const token = localStorage.getItem("token")
       if (!token) throw new Error("No auth token found")
 
-      const API_URL = import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app";
+      const API_URL = (import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app").replace(/\/+$/, '');
       const { data } = await axios.get(`${API_URL}/api/tasks/gp`, {
         headers: { Authorization: `Bearer ${token}` }
       })

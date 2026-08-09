@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css"
 import { INPUT_WRAPPER, FULL_BUTTON, SECTION_WRAPPER, BACK_BUTTON, DANGER_BTN, personalFields, securityFields } from '../assets/dummy'
 
 // Constants & Dummy Data
-const API_URL = import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app";
+const API_URL = (import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app").replace(/\/+$/, '');
 
 export default function Profile({ setCurrentUser, onLogout }) {
   const [profile, setProfile] = useState({ name: "", email: "" })
