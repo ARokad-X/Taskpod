@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand Colors - Minimal Green Accent */
+  --color-brand-coral: #4CBB17; /* Reused for primary accents */
+  --color-brand-purple: #4CBB17;
+  --color-brand-green: #4CBB17;
+  --color-brand-bg: #fafafa;
+  --color-brand-surface: #ffffff;
+  --color-brand-surface-light: #f3f4f6;
+  --color-brand-text: #111827;
+  --color-brand-muted: #6b7280;
+}
+
+body {
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Custom Cutout Navbar Styles */
+.nav-cutout {
+  position: relative;
+  background-color: white;
+  border-bottom-left-radius: 2rem;
+  border-bottom-right-radius: 2rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.nav-cutout::before,
+.nav-cutout::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 2rem;
+  height: 2rem;
+  background-color: transparent;
+}
+
+.nav-cutout::before {
+  left: -2rem;
+  background: radial-gradient(circle at 0 100%, transparent 2rem, white 2rem);
+}
+
+.nav-cutout::after {
+  right: -2rem;
+  background: radial-gradient(circle at 100% 100%, transparent 2rem, white 2rem);
+}
