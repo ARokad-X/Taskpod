@@ -12,7 +12,7 @@ import {
 } from '../assets/dummy'
 
 // API Base
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000") + "/api/tasks";
+const API_BASE = (import.meta.env.VITE_API_URL || "https://taskpods-api.onrender.com") + "/api/tasks";
 
 const Dashboard = () => {
   const { tasks, refreshTasks } = useOutletContext()

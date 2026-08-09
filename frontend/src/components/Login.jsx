@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import axios from "axios"
+import api from "../api/axios"
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast, ToastContainer } from "react-toastify"
@@ -16,7 +16,7 @@ const Login = ({ onSubmit, onSwitchMode }) => {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const url = import.meta.env.VITE_API_URL || "http://localhost:4000";
+  const url = import.meta.env.VITE_API_URL || "https://taskpods-api.onrender.com";
 
   // Auto-login
   useEffect(() => {
@@ -25,7 +25,7 @@ const Login = ({ onSubmit, onSwitchMode }) => {
     if (token) {
       (async () => {
         try {
-          const { data } = await axios.get(`${url}/api/user/me`, {
+          const { data } = await api.get(`/api/user/me`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           if (data.success) {
@@ -55,7 +55,7 @@ const Login = ({ onSubmit, onSwitchMode }) => {
 
     setLoading(true)
     try {
-      const { data } = await axios.post(`${url}/api/user/login`, formData)
+      const { data } = await api.post(`/api/user/login`, formData)
       if (!data.token) throw new Error(data.message || "Login failed.")
 
       localStorage.setItem("token", data.token)

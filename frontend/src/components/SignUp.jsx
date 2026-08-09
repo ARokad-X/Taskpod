@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
-import axios from "axios"
+import api from "../api/axios"
 import { UserPlus } from "lucide-react"
 
 import { Inputwrapper, FIELDS, BUTTONCLASSES, MESSAGE_SUCCESS, MESSAGE_ERROR } from '../assets/dummy'
 
 // Dummy & Constants
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = import.meta.env.VITE_API_URL || "https://taskpods-api.onrender.com";
 const INITIAL_FORM = { name: "", email: "", password: "" }
 
 const SignUp = ({ onSwitchMode }) => {
@@ -22,7 +22,7 @@ const SignUp = ({ onSwitchMode }) => {
     setLoading(true)
     setMessage({ text: "", type: "" })
     try {
-      const { data } = await axios.post(`${API_URL}/api/user/register`, formData)
+      const { data } = await api.post(`/api/user/register`, formData)
       console.log("SignUp successful:", data)
       setMessage({ text: "Registration successful! You can now log in.", type: "success" })
       setFormData(INITIAL_FORM)
