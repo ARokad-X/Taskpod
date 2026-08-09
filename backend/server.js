@@ -11,7 +11,13 @@ const port = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors({
-  origin: 'https://taskpods.vercel.app',
+  origin: (origin, callback) => {
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle, X, Save, Calendar, AlignLeft, Flag, CheckCircle } from 'lucide-react';
 import { baseControlClasses, priorityStyles, DEFAULT_TASK } from '../assets/dummy';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://taskpods-api.onrender.com') + '/api/tasks';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://taskpod-teal.vercel.app') + '/api/tasks';
 
 const TaskModal = ({ isOpen, onClose, taskToEdit, onSave, onLogout }) => {
   const [taskData, setTaskData] = useState(DEFAULT_TASK);

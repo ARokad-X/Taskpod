@@ -16,7 +16,7 @@ const Login = ({ onSubmit, onSwitchMode }) => {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const url = import.meta.env.VITE_API_URL || "https://taskpods-api.onrender.com";
+  const url = import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app";
 
   // Auto-login
   useEffect(() => {
