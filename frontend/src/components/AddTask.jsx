@@ -1,168 +1,151 @@
-// components/TaskModal.jsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { PlusCircle, X, Save, Calendar, AlignLeft, Flag, CheckCircle } from 'lucide-react';
-import { baseControlClasses, priorityStyles, DEFAULT_TASK } from '../assets/dummy';
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://taskpod-teal.vercel.app').replace(/\/+$/, '') + '/api/tasks';
+import { useCallback, useEffect, useState } from 'react'
+import { AlignLeft, Calendar, CheckCircle, Flag, PlusCircle, Save, X } from 'lucide-react'
+import api from '../api/axios'
+import { baseControlClasses, DEFAULT_TASK } from '../assets/constants'
+import { getTaskId, isTaskCompleted } from '../utils/task'
+import { getToken } from '../utils/auth'
 
 const TaskModal = ({ isOpen, onClose, taskToEdit, onSave, onLogout }) => {
-  const [taskData, setTaskData] = useState(DEFAULT_TASK);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const today = new Date().toISOString().split('T')[0];
+  const [taskData, setTaskData] = useState(DEFAULT_TASK)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const today = new Date().toISOString().split('T')[0]
+  const isEdit = Boolean(taskData.id)
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
     if (taskToEdit) {
-      const normalized = taskToEdit.completed === 'Yes' || taskToEdit.completed === true ? 'Yes' : 'No';
       setTaskData({
         ...DEFAULT_TASK,
         title: taskToEdit.title || '',
         description: taskToEdit.description || '',
         priority: taskToEdit.priority || 'Low',
-        dueDate: taskToEdit.dueDate?.split('T')[0] || '',
-        completed: normalized,
-        id: taskToEdit._id,
-      });
+        dueDate: taskToEdit.dueDate ? String(taskToEdit.dueDate).split('T')[0] : '',
+        completed: isTaskCompleted(taskToEdit) ? 'Yes' : 'No',
+        id: getTaskId(taskToEdit),
+      })
     } else {
-      setTaskData(DEFAULT_TASK);
+      setTaskData(DEFAULT_TASK)
     }
-    setError(null);
-  }, [isOpen, taskToEdit]);
+    setError('')
+  }, [isOpen, taskToEdit])
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    if (!isOpen) return undefined
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !loading) onClose()
     }
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setTaskData(prev => ({ ...prev, [name]: value }));
-  }, []);
-
-  const getHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('No auth token found');
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    };
-  }, []);
-
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    if (taskData.dueDate < today) {
-      setError('Due date cannot be in the past.');
-      return;
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
     }
-    setLoading(true);
-    setError(null);
+  }, [isOpen, loading, onClose])
+
+  const handleChange = useCallback((event) => {
+    const { name, value } = event.target
+    setTaskData((previous) => ({ ...previous, [name]: value }))
+  }, [])
+
+  const handleSubmit = useCallback(async (event) => {
+    event.preventDefault()
+    if (!taskData.title.trim()) {
+      setError('Please add a title for this task.')
+      return
+    }
+    if (!taskData.dueDate) {
+      setError('Please choose a due date.')
+      return
+    }
+    if (!isEdit && taskData.dueDate < today) {
+      setError('Due date cannot be in the past.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
     try {
-      const isEdit = Boolean(taskData.id);
-      const url = isEdit ? `${API_BASE}/${taskData.id}/gp` : `${API_BASE}/gp`;
-      const resp = await fetch(url, {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(taskData),
-      });
-      if (!resp.ok) {
-        if (resp.status === 401) return onLogout?.();
-        const err = await resp.json();
-        throw new Error(err.message || 'Failed to save task');
+      const token = getToken()
+      if (!token) throw new Error('Your session has expired. Please sign in again.')
+      const payload = {
+        title: taskData.title.trim(),
+        description: taskData.description.trim(),
+        priority: taskData.priority,
+        dueDate: taskData.dueDate,
+        completed: taskData.completed,
       }
-      const saved = await resp.json();
-      onSave?.(saved);
-      onClose();
+      const response = await api.request({
+        url: isEdit ? `/api/tasks/${taskData.id}/gp` : '/api/tasks/gp',
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        data: payload,
+      })
+      onSave?.(response.data?.task || response.data)
+      onClose()
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'An unexpected error occurred');
+      if (err.response?.status === 401) {
+        onLogout?.()
+        return
+      }
+      setError(err.response?.data?.message || err.message || 'Unable to save this task.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [taskData, today, getHeaders, onLogout, onSave, onClose]);
+  }, [isEdit, onClose, onLogout, onSave, taskData, today])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm bg-black/20 z-50 flex items-center justify-center p-4">
-      <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-xl max-w-md w-full shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 relative animate-fadeIn">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-brand-green flex items-center gap-2">
-            {taskData.id ? <Save className="text-brand-green w-5 h-5" /> : <PlusCircle className="text-brand-green w-5 h-5" />}
-            {taskData.id ? 'Edit Task' : 'Create New Task'}
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-brand-muted hover:text-brand-green">
-            <X className="w-5 h-5" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) onClose() }}>
+      <section className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-white/80 bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-[.14em] text-brand-green">Workspace task</p>
+            <h2 id="task-modal-title" className="flex items-center gap-2 text-xl font-extrabold text-brand-text sm:text-2xl">
+              {isEdit ? <Save className="h-5 w-5 text-brand-green" aria-hidden="true" /> : <PlusCircle className="h-5 w-5 text-brand-green" aria-hidden="true" />}
+              {isEdit ? 'Edit task' : 'Create new task'}
+            </h2>
+          </div>
+          <button type="button" onClick={onClose} disabled={loading} className="rounded-lg p-2 text-brand-muted transition hover:bg-gray-100 hover:text-brand-text" aria-label="Close task dialog"><X className="h-5 w-5" /></button>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
+          {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">Task Title</label>
-            <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-brand-green focus-within:border-brand-green transition-all duration-200">
-              <input
-                type="text" name="title" required value={taskData.title} onChange={handleChange}
-                className="w-full focus:outline-none text-sm" placeholder="Enter task title"
-              />
-            </div>
+            <label className="form-label" htmlFor="task-title">Task title</label>
+            <input id="task-title" name="title" type="text" required maxLength={120} autoFocus value={taskData.title} onChange={handleChange} className={baseControlClasses} placeholder="What needs to be done?" />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-900 mb-1 flex items-center gap-1">
-              <AlignLeft className="w-4 h-4 text-brand-green" /> Description
-            </label>
-            <textarea name="description" rows="3" value={taskData.description} onChange={handleChange}
-              className={baseControlClasses} placeholder="Add details about your task" />
+            <label className="form-label" htmlFor="task-description"><span className="inline-flex items-center gap-1"><AlignLeft className="h-4 w-4 text-brand-green" aria-hidden="true" /> Description</span></label>
+            <textarea id="task-description" name="description" rows="3" maxLength={500} value={taskData.description} onChange={handleChange} className={`${baseControlClasses} resize-y`} placeholder="Add helpful context (optional)" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-medium text-gray-900 mb-1 flex items-center gap-1">
-                <Flag className="w-4 h-4 text-brand-green" /> Priority
-              </label>
-              <select name="priority" value={taskData.priority} onChange={handleChange}
-                className={baseControlClasses}
-              >
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
-              </select>
+              <label className="form-label" htmlFor="task-priority"><span className="inline-flex items-center gap-1"><Flag className="h-4 w-4 text-brand-green" aria-hidden="true" /> Priority</span></label>
+              <select id="task-priority" name="priority" value={taskData.priority} onChange={handleChange} className={baseControlClasses}><option>Low</option><option>Medium</option><option>High</option></select>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-900 mb-1 flex items-center gap-1">
-                <Calendar className="w-4 h-4 text-brand-green" /> Due Date
-              </label>
-              <input type="date" name="dueDate" required min={today} value={taskData.dueDate}
-                onChange={handleChange} className={baseControlClasses} />
+              <label className="form-label" htmlFor="task-due-date"><span className="inline-flex items-center gap-1"><Calendar className="h-4 w-4 text-brand-green" aria-hidden="true" /> Due date</span></label>
+              <input id="task-due-date" type="date" name="dueDate" required min={isEdit ? undefined : today} value={taskData.dueDate} onChange={handleChange} className={baseControlClasses} />
             </div>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-1">
-              <CheckCircle className="w-4 h-4 text-brand-green" /> Status
-            </label>
-            <div className="flex gap-4">
-              {[{ val: 'Yes', label: 'Completed' }, { val: 'No', label: 'In Progress' }].map(({ val, label }) => (
-                <label key={val} className="flex items-center">
-                  <input type="radio" name="completed" value={val} checked={taskData.completed === val}
-                    onChange={handleChange} className="h-4 w-4 text-brand-green focus:ring-brand-green border-gray-300 rounded" />
-                  <span className="ml-2 text-sm text-gray-900">{label}</span>
+          <fieldset>
+            <legend className="form-label"><span className="inline-flex items-center gap-1"><CheckCircle className="h-4 w-4 text-brand-green" aria-hidden="true" /> Status</span></legend>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {[{ value: 'No', label: 'In progress' }, { value: 'Yes', label: 'Completed' }].map(({ value, label }) => (
+                <label key={value} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${taskData.completed === value ? 'border-brand-green bg-green-50 text-brand-green' : 'border-gray-200 text-brand-muted hover:border-gray-300'}`}>
+                  <input type="radio" name="completed" value={value} checked={taskData.completed === value} onChange={handleChange} className="h-4 w-4 accent-brand-green" />{label}
                 </label>
               ))}
             </div>
-          </div>
-          <button type="submit" disabled={loading}
-            className="w-full bg-brand-green hover:bg-brand-green/90 text-white font-medium py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 hover:shadow-md transition-all duration-200"
-          >
-            {loading ? 'Saving...' : (taskData.id ? <><Save className="w-4 h-4" /> Update Task</> : <><PlusCircle className="w-4 h-4" /> Create Task</>)}
-          </button>
+          </fieldset>
+          <button type="submit" disabled={loading} className="primary-button w-full">{loading ? 'Saving…' : isEdit ? <><Save className="h-4 w-4" /> Update task</> : <><PlusCircle className="h-4 w-4" /> Create task</>}</button>
         </form>
-      </div>
+      </section>
     </div>
-  );
-};
+  )
+}
 
-export default TaskModal;
+export default TaskModal

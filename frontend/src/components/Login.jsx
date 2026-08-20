@@ -1,170 +1,76 @@
-import { useState, useEffect } from "react"
-import api from "../api/axios"
-import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react"
-import { useNavigate } from "react-router-dom"
-import { toast, ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
+import { useEffect, useState } from 'react'
+import { Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react'
+import { toast, ToastContainer } from 'react-toastify'
+import api from '../api/axios'
+import { INPUTWRAPPER, BUTTON_CLASSES } from '../assets/constants'
+import { clearAuth, getToken } from '../utils/auth'
+import 'react-toastify/dist/ReactToastify.css'
 
-import { INPUTWRAPPER, BUTTON_CLASSES } from '../assets/dummy'
-
-// Dummy data and repeated CSS
-const INITIAL_FORM = { email: "", password: "" }
+const INITIAL_FORM = { email: '', password: '' }
 
 const Login = ({ onSubmit, onSwitchMode }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState(INITIAL_FORM)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
-  const url = import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app";
-
-  // Auto-login
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    const userId = localStorage.getItem("userId")
-    if (token) {
-      (async () => {
-        try {
-          const { data } = await api.get(`/api/user/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          if (data.success) {
-            onSubmit?.({ token, userId, ...data.user })
-            toast.success("Session restored. Redirecting...")
-            navigate("/")
-          } else {
-            localStorage.clear()
-          }
-        } catch {
-          localStorage.clear()
-        }
-      })()
-    }
-  }, [navigate, onSubmit])
 
   useEffect(() => {
-    console.log("Login form data changed:", formData)
-  }, [formData])
+    const token = getToken()
+    if (!token) return
+    let active = true
+    api.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => {
+        if (active && data.success) onSubmit?.({ token, userId: localStorage.getItem('userId'), ...data.user })
+      })
+      .catch(() => {
+        clearAuth()
+      })
+    return () => { active = false }
+  }, [onSubmit])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!rememberMe) {
-      toast.error('You must enable "Remember Me" to login.')
-      return
-    }
-
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     setLoading(true)
     try {
-      const { data } = await api.post(`/api/user/login`, formData)
-      if (!data.token) throw new Error(data.message || "Login failed.")
-
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("userId", data.user.id)
-      setFormData(INITIAL_FORM)
+      const { data } = await api.post('/api/user/login', formData)
+      if (!data.token || !data.user) throw new Error(data.message || 'Login failed.')
+      if (rememberMe) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('userId', data.user.id)
+      } else {
+        sessionStorage.setItem('token', data.token)
+        sessionStorage.setItem('userId', data.user.id)
+      }
       onSubmit?.({ token: data.token, userId: data.user.id, ...data.user })
-      toast.success("Login successful! Redirecting...")
-      setTimeout(() => navigate("/"), 1000)
+      toast.success('Login successful.')
     } catch (err) {
-      const msg = err.response?.data?.message || err.message
-      toast.error(msg)
+      toast.error(err.response?.data?.message || err.message || 'Unable to log in.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSwitchMode = () => {
-    toast.dismiss()
-    onSwitchMode?.()
-  }
-
-  // Field definitions
-  const fields = [
-    {
-      name: "email",
-      type: "email",
-      placeholder: "Email",
-      icon: Mail,
-    },
-    {
-      name: "password",
-      type: showPassword ? "text" : "password",
-      placeholder: "Password",
-      icon: Lock,
-      isPassword: true,
-    },
-  ]
-
   return (
-    <div className="max-w-md w-full bg-white/70 backdrop-blur-md border border-white/50 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
-
-      <div className="mb-6 text-center">
-        <div className="w-16 h-16 bg-gradient-to-br from-brand-coral to-brand-purple rounded-full mx-auto flex items-center justify-center mb-4">
-          <LogIn className="w-8 h-8 text-white" />
-        </div>
-        <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
-        <p className="text-gray-500 text-sm mt-1">Sign in to continue to Taskpods</p>
+    <div className="auth-card">
+      <ToastContainer position="top-center" autoClose={2800} hideProgressBar newestOnTop />
+      <div className="mb-7 text-center">
+        <div className="auth-icon"><LogIn className="h-7 w-7" aria-hidden="true" /></div>
+        <h1 className="text-2xl font-extrabold tracking-tight text-brand-text">Welcome back</h1>
+        <p className="mt-1 text-sm text-brand-muted">Sign in to continue to Taskpods</p>
       </div>
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        {fields.map(({ name, type, placeholder, icon: Icon, isPassword }) => (
-          <div key={name} className={INPUTWRAPPER}>
-            <Icon className="text-brand-purple w-5 h-5 mr-2" />
-            <input
-              type={type}
-              placeholder={placeholder}
-              value={formData[name]}
-              onChange={(e) => setFormData({ ...formData, [name]: e.target.value })}
-              className="w-full focus:outline-none text-sm text-gray-700"
-              required
-            />
-            {isPassword && (
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="ml-2 text-gray-500 hover:text-brand-purple transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            )}
-          </div>
-        ))}
-
-        <div className="flex items-center">
-          <input
-            id="rememberMe"
-            type="checkbox"
-            checked={rememberMe}
-            onChange={() => setRememberMe(!rememberMe)}
-            className="h-4 w-4 text-brand-purple focus:ring-purple-400 border-gray-300 rounded"
-            required
-          />
-          <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-            Remember Me
-          </label>
+        <div>
+          <label htmlFor="login-email" className="form-label">Email address</label>
+          <div className={INPUTWRAPPER}><Mail className="h-5 w-5 shrink-0 text-brand-green" aria-hidden="true" /><input id="login-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={formData.email} onChange={(event) => setFormData((previous) => ({ ...previous, email: event.target.value }))} className="w-full bg-transparent text-sm text-brand-text outline-none" required /></div>
         </div>
-
-        <button type="submit" className={BUTTON_CLASSES} disabled={loading}>
-          {loading ? (
-            "Logging in..."
-          ) : (
-            <>
-              <LogIn className="w-4 h-4" /> Login
-            </>
-          )}
-        </button>
+        <div>
+          <label htmlFor="login-password" className="form-label">Password</label>
+          <div className={INPUTWRAPPER}><Lock className="h-5 w-5 shrink-0 text-brand-green" aria-hidden="true" /><input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" value={formData.password} onChange={(event) => setFormData((previous) => ({ ...previous, password: event.target.value }))} className="w-full bg-transparent text-sm text-brand-text outline-none" required /><button type="button" onClick={() => setShowPassword((visible) => !visible)} className="rounded-md p-1 text-brand-muted transition hover:text-brand-green" aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></div>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-brand-muted"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="h-4 w-4 accent-brand-green" /> Remember me</label>
+        <button type="submit" className={BUTTON_CLASSES} disabled={loading}>{loading ? 'Signing in…' : <><LogIn className="h-4 w-4" aria-hidden="true" /> Sign in</>}</button>
       </form>
-
-      <p className="text-center text-sm text-gray-600 mt-6">
-        Don't have an account?{' '}
-        <button
-          type="button"
-          onClick={handleSwitchMode}
-          className="text-brand-purple hover:text-brand-purple hover:underline font-medium transition-colors"
-        >
-          Sign Up
-        </button>
-      </p>
+      <p className="mt-6 text-center text-sm text-brand-muted">Don’t have an account? <button type="button" onClick={onSwitchMode} className="font-bold text-brand-green underline-offset-4 hover:underline">Create one</button></p>
     </div>
   )
 }

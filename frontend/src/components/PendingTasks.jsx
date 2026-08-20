@@ -1,127 +1,93 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Filter, SortDesc, SortAsc, Award, Plus, ListChecks, Clock } from 'lucide-react';
-import TaskItem from '../components/TaskItem';
-import TaskModal from '../components/AddTask';
-import { layoutClasses } from '../assets/dummy';
+import { createElement, useCallback, useMemo, useState } from 'react'
+import { Award, Clock, Filter, ListChecks, Plus, SortAsc, SortDesc } from 'lucide-react'
+import { useOutletContext } from 'react-router-dom'
+import TaskItem from './TaskItem'
+import TaskModal from './AddTask'
+import api from '../api/axios'
+import { layoutClasses } from '../assets/constants'
+import { getTaskId, isTaskCompleted, toApiCompleted } from '../utils/task'
+import { getToken } from '../utils/auth'
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://taskpod-teal.vercel.app').replace(/\/+$/, '') + '/api/tasks';
 const sortOptions = [
-  { id: 'newest', label: 'Newest', icon: <SortDesc className="w-3 h-3" /> },
-  { id: 'oldest', label: 'Oldest', icon: <SortAsc className="w-3 h-3" /> },
-  { id: 'priority', label: 'Priority', icon: <Award className="w-3 h-3" /> },
-];
+  { id: 'newest', label: 'Newest', icon: SortDesc },
+  { id: 'oldest', label: 'Oldest', icon: SortAsc },
+  { id: 'priority', label: 'Priority', icon: Award },
+]
 
 const PendingTasks = () => {
-  const { tasks = [], refreshTasks } = useOutletContext();
-  const [sortBy, setSortBy] = useState('newest');
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const { tasks = [], refreshTasks } = useOutletContext()
+  const [sortBy, setSortBy] = useState('newest')
+  const [selectedTask, setSelectedTask] = useState(null)
+  const [showModal, setShowModal] = useState(false)
 
-  const getHeaders = () => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('No auth token found');
-    return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-  };
+  const authConfig = () => {
+    const token = getToken()
+    if (!token) throw new Error('Your session has expired. Please sign in again.')
+    return { headers: { Authorization: `Bearer ${token}` } }
+  }
 
   const handleDelete = useCallback(async (id) => {
-    await fetch(`${API_BASE}/${id}/gp`, { method: 'DELETE', headers: getHeaders() });
-    refreshTasks();
-  }, [refreshTasks]);
+    await api.delete(`/api/tasks/${id}/gp`, authConfig())
+    await refreshTasks()
+  }, [refreshTasks])
 
   const handleToggleComplete = useCallback(async (id, completed) => {
-    await fetch(`${API_BASE}/${id}/gp`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ completed: completed ? 'Yes' : 'No' }),
-    });
-    refreshTasks();
-  }, [refreshTasks]);
+    await api.put(`/api/tasks/${id}/gp`, { completed: toApiCompleted(completed) }, authConfig())
+    await refreshTasks()
+  }, [refreshTasks])
 
   const sortedPendingTasks = useMemo(() => {
-    const filtered = tasks.filter(
-      (t) => !t.completed || (typeof t.completed === 'string' && t.completed.toLowerCase() === 'no')
-    );
-    return filtered.sort((a, b) => {
-      if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-      if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-      const order = { high: 3, medium: 2, low: 1 };
-      return order[b.priority.toLowerCase()] - order[a.priority.toLowerCase()];
-    });
-  }, [tasks, sortBy]);
+    const filtered = tasks.filter((task) => !isTaskCompleted(task))
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+      if (sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
+      const order = { high: 3, medium: 2, low: 1 }
+      return (order[b.priority?.toLowerCase()] || 0) - (order[a.priority?.toLowerCase()] || 0)
+    })
+  }, [tasks, sortBy])
+
+  const closeModal = () => {
+    setShowModal(false)
+    setSelectedTask(null)
+  }
 
   return (
     <div className={layoutClasses.container}>
       <div className={layoutClasses.headerWrapper}>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-brand-text flex items-center gap-2">
-            <ListChecks className="text-brand-purple" /> Pending Tasks
-          </h1>
-          <p className="text-sm text-brand-muted mt-1 ml-7">
-            {sortedPendingTasks.length} task{sortedPendingTasks.length !== 1 && 's'} needing your attention
-          </p>
+        <div className="min-w-0">
+          <h1 className="page-title"><ListChecks className="h-6 w-6 shrink-0 text-brand-green" aria-hidden="true" /> <span>Pending tasks</span></h1>
+          <p className="page-subtitle">{sortedPendingTasks.length} task{sortedPendingTasks.length !== 1 ? 's' : ''} needing your attention</p>
         </div>
         <div className={layoutClasses.sortBox}>
-          <div className="flex items-center gap-2 text-brand-text font-medium">
-            <Filter className="w-4 h-4 text-brand-purple" />
-            <span className="text-sm">Sort by:</span>
-          </div>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={layoutClasses.select}>
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="priority">By Priority</option>
+          <div className="flex items-center gap-2 text-sm font-semibold text-brand-text"><Filter className="h-4 w-4 text-brand-green" aria-hidden="true" /><span>Sort by</span></div>
+          <select aria-label="Sort pending tasks" value={sortBy} onChange={(event) => setSortBy(event.target.value)} className={layoutClasses.select}>
+            {sortOptions.map((option) => <option key={option.id} value={option.id}>{option.label}{option.id === 'newest' ? ' first' : ''}</option>)}
           </select>
-          <div className={layoutClasses.tabWrapper}>
-            {sortOptions.map(opt => (
-              <button key={opt.id} onClick={() => setSortBy(opt.id)} className={layoutClasses.tabButton(sortBy === opt.id)}>
-                {opt.icon}{opt.label}
-              </button>
-            ))}
+          <div className={layoutClasses.tabWrapper} role="group" aria-label="Sort pending tasks">
+            {sortOptions.map(({ id, label, icon: Icon }) => <button type="button" key={id} onClick={() => setSortBy(id)} className={layoutClasses.tabButton(sortBy === id)} aria-pressed={sortBy === id}>{createElement(Icon, { className: 'h-3.5 w-3.5', 'aria-hidden': true })}{label}</button>)}
           </div>
         </div>
       </div>
-      <div className={layoutClasses.addBox} onClick={() => setShowModal(true)}>
-        <div className="flex items-center justify-center gap-3 text-brand-muted group-hover:text-brand-purple transition-colors">
-          <div className="w-8 h-8 rounded-full bg-brand-surface flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
-            <Plus size={18} className="text-brand-purple" />
-          </div>
-          <span className="font-medium">Add New Task</span>
-        </div>
-      </div>
-      <div className="space-y-4">
+
+      <button type="button" className={layoutClasses.addBox} onClick={() => setShowModal(true)}><span className="flex items-center justify-center gap-3 font-semibold"><span className="grid h-8 w-8 place-items-center rounded-full bg-green-50"><Plus className="h-4 w-4 text-brand-green" /></span>Add new task</span></button>
+
+      <div className="space-y-3">
         {sortedPendingTasks.length === 0 ? (
           <div className={layoutClasses.emptyState}>
-            <div className="max-w-xs mx-auto py-6">
-              <div className={layoutClasses.emptyIconBg}><Clock className="w-8 h-8 text-brand-purple" /></div>
-              <h3 className="text-lg font-semibold text-brand-text mb-2">All caught up!</h3>
-              <p className="text-sm text-brand-muted mb-4">No pending tasks - great work!</p>
-              <button onClick={() => setShowModal(true)} className={layoutClasses.emptyBtn}>Create New Task</button>
-            </div>
+            <div className={layoutClasses.emptyIconBg}><Clock className="h-7 w-7" aria-hidden="true" /></div>
+            <h2 className="text-lg font-bold text-brand-text">All caught up</h2>
+            <p className="mt-1 text-sm text-brand-muted">No pending tasks right now.</p>
+            <button type="button" onClick={() => setShowModal(true)} className={layoutClasses.emptyBtn}>Create new task</button>
           </div>
-        ) : (
-          sortedPendingTasks.map(task => (
-            <TaskItem
-              key={task._id || task.id}
-              task={task}
-              showCompleteCheckbox
-              onDelete={() => handleDelete(task._id || task.id)}
-              onToggleComplete={() => handleToggleComplete(
-                task._id || task.id,
-                !t.completed
-              )}
-              onEdit={() => { setSelectedTask(task); setShowModal(true); }}
-              onRefresh={refreshTasks}
-            />
-          ))
-        )}
+        ) : sortedPendingTasks.map((task) => {
+          const id = getTaskId(task)
+          return <TaskItem key={id} task={task} showCompleteCheckbox onDelete={() => handleDelete(id)} onToggleComplete={(completed) => handleToggleComplete(id, completed)} onEdit={() => { setSelectedTask(task); setShowModal(true) }} onRefresh={refreshTasks} />
+        })}
       </div>
-      <TaskModal
-        isOpen={!!selectedTask || showModal}
-        onClose={() => { setShowModal(false); setSelectedTask(null); refreshTasks(); }}
-        taskToEdit={selectedTask}
-      />
-    </div>
-  );
-};
 
-export default PendingTasks;
+      <TaskModal isOpen={Boolean(selectedTask) || showModal} onClose={closeModal} taskToEdit={selectedTask} onSave={refreshTasks} />
+    </div>
+  )
+}
+
+export default PendingTasks

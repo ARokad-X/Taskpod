@@ -1,8 +1,23 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { Outlet } from "react-router-dom"
-import { Circle, TrendingUp, Zap, Clock, ListTodo, CheckCircle, ListChecks } from "lucide-react"
-import TopNav from "./TopNav"
-import axios from "axios"
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Outlet } from 'react-router-dom'
+import { CheckCircle, Clock, Circle, ListTodo, TrendingUp, Zap } from 'lucide-react'
+import TopNav from './TopNav'
+import api from '../api/axios'
+import { clearAuth, getToken } from '../utils/auth'
+
+const isCompleted = (task) => [true, 1, 'yes'].includes(
+  typeof task.completed === 'string' ? task.completed.toLowerCase() : task.completed,
+)
+
+const StatCard = ({ title, value, icon, gradient = false }) => (
+  <div className="stat-card group">
+    <div className="stat-icon">{icon}</div>
+    <div className="min-w-0">
+      <p className={`text-2xl font-bold ${gradient ? 'text-gradient' : 'text-brand-text'}`}>{value}</p>
+      <p className="mt-1 truncate text-sm font-medium text-brand-muted">{title}</p>
+    </div>
+  </div>
+)
 
 const Layout = ({ user, onLogout }) => {
   const [tasks, setTasks] = useState([])
@@ -11,199 +26,125 @@ const Layout = ({ user, onLogout }) => {
 
   const fetchTasks = useCallback(async () => {
     setError(null)
-
     try {
-      const token = localStorage.getItem("token")
-      if (!token) throw new Error("No auth token found")
-
-      const API_URL = (import.meta.env.VITE_API_URL || "https://taskpod-teal.vercel.app").replace(/\/+$/, '');
-      const { data } = await axios.get(`${API_URL}/api/tasks/gp`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const token = getToken()
+      if (!token) throw new Error('Your session has expired. Please sign in again.')
+      const { data } = await api.get('/api/tasks/gp', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-
-      const arr = Array.isArray(data) ? data : 
-        Array.isArray(data?.tasks) ? data.tasks :
-        Array.isArray(data?.data) ? data.data : []
-
-      setTasks(arr)
+      const nextTasks = Array.isArray(data?.tasks) ? data.tasks : Array.isArray(data) ? data : []
+      setTasks(nextTasks)
     } catch (err) {
-      console.error(err)
-      setError(err.message || "Could not load tasks.")
-      if (err.response?.status === 401) onLogout()
+      setError(err.response?.data?.message || err.message || 'Could not load your tasks.')
+      if (err.response?.status === 401 || !getToken()) {
+        clearAuth()
+        onLogout()
+      }
     } finally {
       setInitialLoading(false)
     }
   }, [onLogout])
 
-  useEffect(() => { fetchTasks() }, [fetchTasks])
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
 
   const stats = useMemo(() => {
-    const completedTasks = tasks.filter(t => 
-      t.completed === true ||
-      t.completed === 1 ||
-      (typeof t.completed === "string" && t.completed.toLowerCase() === "yes")
-    ).length
-
+    const completedTasks = tasks.filter(isCompleted).length
     const totalCount = tasks.length
-    const pendingCount = totalCount - completedTasks
-    const completionPercentage = totalCount ? 
-      Math.round((completedTasks / totalCount) * 100) : 0
-
     return {
       totalCount,
       completedTasks,
-      pendingCount,
-      completionPercentage
+      pendingCount: totalCount - completedTasks,
+      completionPercentage: totalCount ? Math.round((completedTasks / totalCount) * 100) : 0,
     }
   }, [tasks])
 
-  const StatCard = ({ title, value, icon, gradient }) => (
-    <div className="p-4 rounded-2xl bg-brand-surface shadow-lg border border-white/5 hover:border-brand-coral/30 transition-all duration-300 group">
-      <div className="flex flex-col gap-3">
-        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-          {icon}
-        </div>
-        <div>
-          <p className={`text-2xl font-bold ${gradient ? 'bg-gradient-to-r from-brand-coral to-brand-purple bg-clip-text text-transparent' : 'text-brand-text'}`}>
-            {value}
-          </p>
-          <p className="text-sm text-brand-muted font-medium mt-1">{title}</p>
-        </div>
+  if (initialLoading) {
+    return (
+      <div className="app-state" role="status" aria-live="polite">
+        <div className="loading-orbit" aria-hidden="true"><span /></div>
+        <p>Loading your workspace…</p>
       </div>
-    </div>
-  )
+    )
+  }
 
-  if (initialLoading) return (
-    <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center gap-4">
-      <div className="relative">
-        <svg viewBox="0 0 100 100" className="w-16 h-16 text-brand-green animate-pulse drop-shadow-lg">
-          <path fill="currentColor" d="M50 85 C 20 60, 10 40, 15 25 C 20 10, 40 10, 50 25 C 60 10, 80 10, 85 25 C 90 40, 80 60, 50 85 Z" />
-          <circle cx="50" cy="35" r="15" fill="white" />
-        </svg>
-        <div className="absolute inset-0 border-4 border-brand-green/20 rounded-full animate-[spin_3s_linear_infinite]" style={{ margin: '-8px' }}></div>
+  if (error) {
+    return (
+      <div className="app-state px-6">
+        <div className="state-card max-w-md">
+          <div className="state-icon state-icon-error" aria-hidden="true">!</div>
+          <h1 className="text-xl font-bold text-brand-text">We couldn’t load your tasks</h1>
+          <p className="mt-2 text-center text-sm text-brand-muted">{error}</p>
+          <button type="button" onClick={fetchTasks} className="primary-button mt-6">Try again</button>
+        </div>
       </div>
-      <p className="text-brand-muted text-sm font-medium animate-pulse tracking-wide uppercase mt-4">Loading Workspace...</p>
-    </div>
-  )
-
-  if (error) return (
-    <div className="min-h-screen bg-brand-bg p-6 flex items-center justify-center">
-      <div className="bg-red-500/10 text-red-400 p-6 rounded-2xl border border-red-500/20 max-w-md">
-        <p className="font-bold mb-2">Error loading tasks</p>
-        <p className="text-sm">{error}</p>
-        <button
-          onClick={fetchTasks}
-          className="mt-4 px-5 py-2 bg-red-500 text-white rounded-full text-sm font-bold hover:bg-red-600 transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text relative overflow-x-hidden">
-      <TopNav />
-
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 pt-4 md:pt-6 transition-all duration-300 relative z-10">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
-          <div className="xl:col-span-2 space-y-6">
+    <div className="app-shell">
+      <TopNav user={user} onLogout={onLogout} />
+      <main className="app-main">
+        <div className="content-grid">
+          <section className="min-w-0">
             <Outlet context={{ tasks, refreshTasks: fetchTasks }} />
-          </div>
-
-          <div className="xl:col-span-1 space-y-6">
-            {/* Stats Panel */}
-            <div className="bg-brand-surface rounded-3xl p-6 shadow-xl border border-white/5">
-              <h3 className="text-lg font-bold mb-6 text-brand-green flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-brand-green" />
-                Task Overview
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <StatCard 
-                  title="Total Tasks" 
-                  value={stats.totalCount} 
-                  icon={<ListTodo className="w-5 h-5 text-brand-green" />} 
-                  gradient
-                />
-                <StatCard 
-                  title="Completed" 
-                  value={stats.completedTasks} 
-                  icon={<CheckCircle className="w-5 h-5 text-brand-green" />} 
-                />
-                <StatCard 
-                  title="Pending" 
-                  value={stats.pendingCount} 
-                  icon={<Clock className="w-5 h-5 text-brand-green" />} 
-                />
-                <StatCard
-                  title="Completion"
-                  value={`${stats.completionPercentage}%`}
-                  icon={<Zap className="w-5 h-5 text-yellow-400" />}
-                />
+          </section>
+          <aside className="space-y-5" aria-label="Workspace summary">
+            <div className="panel-card">
+              <div className="panel-heading">
+                <span className="panel-heading-icon"><TrendingUp className="h-4 w-4" /></span>
+                <h2>Task overview</h2>
               </div>
-
-              <hr className="my-6 border-white/5" />
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-brand-muted flex items-center gap-2">
-                    <Circle className="w-3 h-3 text-brand-green fill-brand-coral" />
-                    Overall Progress
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <StatCard title="Total tasks" value={stats.totalCount} icon={<ListTodo className="h-5 w-5" />} gradient />
+                <StatCard title="Completed" value={stats.completedTasks} icon={<CheckCircle className="h-5 w-5" />} />
+                <StatCard title="Pending" value={stats.pendingCount} icon={<Clock className="h-5 w-5" />} />
+                <StatCard title="Completion" value={`${stats.completionPercentage}%`} icon={<Zap className="h-5 w-5" />} />
+              </div>
+              <div className="mt-6 border-t border-gray-100 pt-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-sm font-medium text-brand-muted">
+                    <Circle className="h-3 w-3 fill-brand-green text-brand-green" /> Overall progress
                   </span>
-                  <span className="text-xs bg-brand-coral/20 text-brand-green font-bold px-2 py-1 rounded-full">
+                  <span className="rounded-full bg-brand-green/10 px-2.5 py-1 text-xs font-bold text-brand-green">
                     {stats.completedTasks}/{stats.totalCount}
                   </span>
                 </div>
-                <div className="h-2 bg-brand-surface-light rounded-full overflow-hidden mt-2">
-                  <div
-                    className="h-full bg-gradient-to-r from-brand-coral to-brand-purple transition-all duration-1000 ease-out"
-                    style={{ width: `${stats.completionPercentage}%` }}
-                  />
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100" aria-label={`${stats.completionPercentage}% complete`} role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={stats.completionPercentage}>
+                  <div className="h-full rounded-full bg-brand-green transition-all duration-700" style={{ width: `${stats.completionPercentage}%` }} />
                 </div>
               </div>
             </div>
 
-            {/* Recent Activity Panel */}
-            <div className="bg-brand-surface rounded-3xl p-6 shadow-xl border border-white/5">
-              <h3 className="text-lg font-bold mb-4 text-brand-green flex items-center gap-2">
-                <Clock className="w-5 h-5 text-brand-green" />
-                Recent Activity
-              </h3>
-              <div className="space-y-3">
+            <div className="panel-card">
+              <div className="panel-heading">
+                <span className="panel-heading-icon"><Clock className="h-4 w-4" /></span>
+                <h2>Recent activity</h2>
+              </div>
+              <div className="space-y-2">
                 {tasks.slice(0, 4).map((task) => (
-                  <div
-                    key={task._id || task.id}
-                    className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors duration-200 border border-transparent hover:border-white/10 group"
-                  >
-                    <div className="flex-1 min-w-0 pr-4">
-                      <p className="text-sm font-medium text-brand-text truncate group-hover:text-brand-green transition-colors">
-                        {task.title}
-                      </p>
-                      <p className="text-xs text-brand-muted mt-1">
-                        {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "Recently added"}
-                      </p>
+                  <div key={task.id || task._id} className="activity-row">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-brand-text">{task.title}</p>
+                      <p className="mt-1 text-xs text-brand-muted">{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'Recently added'}</p>
                     </div>
-                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shrink-0 ${
-                      task.completed ? 'bg-green-500/20 text-brand-green' : 'bg-brand-purple/20 text-brand-green'
-                    }`}>
-                      {task.completed ? "Done" : "Pending"}
+                    <span className={`status-pill ${isCompleted(task) ? 'status-pill-success' : 'status-pill-muted'}`}>
+                      {isCompleted(task) ? 'Done' : 'Pending'}
                     </span>
                   </div>
                 ))}
-                {tasks.length === 0 && (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-surface-light flex items-center justify-center">
-                      <Clock className="w-8 h-8 text-brand-muted" />
-                    </div>
-                    <p className="text-sm font-medium text-brand-muted">No recent activity</p>
+                {!tasks.length && (
+                  <div className="empty-activity">
+                    <Clock className="h-6 w-6 text-gray-300" />
+                    <p>No recent activity</p>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

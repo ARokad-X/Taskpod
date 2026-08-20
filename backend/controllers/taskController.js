@@ -1,4 +1,4 @@
-import { prisma } from "../config/db.js";
+import { prisma } from '../config/db.js';
 
 // Create a new task
 export const createTask = async (req, res) => {
