@@ -63,8 +63,14 @@ const Layout = ({ user, onLogout }) => {
   if (initialLoading) {
     return (
       <div className="app-state" role="status" aria-live="polite">
-        <div className="loading-orbit" aria-hidden="true"><span /></div>
-        <p>Loading your workspace…</p>
+        <div className="loading-skeleton" aria-hidden="true">
+          <div className="skeleton-line" style={{ width: '42%' }} />
+          <div className="skeleton-line skeleton-line-short" />
+          <div className="skeleton-line" style={{ width: '100%', height: '9rem', borderRadius: '1rem', marginTop: '1.5rem' }} />
+          <div className="skeleton-line" style={{ width: '88%', marginTop: '.9rem' }} />
+          <div className="skeleton-line" style={{ width: '66%' }} />
+        </div>
+        <p className="text-sm font-semibold">Loading your workspace…</p>
       </div>
     )
   }
@@ -85,7 +91,7 @@ const Layout = ({ user, onLogout }) => {
   return (
     <div className="app-shell">
       <TopNav user={user} onLogout={onLogout} />
-      <main className="app-main">
+      <main className="app-main page-enter">
         <div className="content-grid">
           <section className="min-w-0">
             <Outlet context={{ tasks, refreshTasks: fetchTasks }} />

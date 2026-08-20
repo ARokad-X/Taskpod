@@ -7,11 +7,12 @@ import api from '../api/axios'
 import { getTaskId, isTaskCompleted, toApiCompleted } from '../utils/task'
 import { getToken } from '../utils/auth'
 
-const TaskItem = ({ task, onRefresh, onLogout, showCompleteCheckbox = true, onDelete, onToggleComplete, onEdit, className = '' }) => {
+const TaskItem = ({ task, onRefresh, onLogout, showCompleteCheckbox = true, onDelete, onToggleComplete, onEdit, className = '', index = 0 }) => {
   const [showMenu, setShowMenu] = useState(false)
   const [isCompleted, setIsCompleted] = useState(isTaskCompleted(task))
   const [showEditModal, setShowEditModal] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [completionPulse, setCompletionPulse] = useState(false)
   const taskId = getTaskId(task)
 
   useEffect(() => {
@@ -35,6 +36,8 @@ const TaskItem = ({ task, onRefresh, onLogout, showCompleteCheckbox = true, onDe
         await onRefresh?.()
       }
       setIsCompleted(nextCompleted)
+      setCompletionPulse(true)
+      window.setTimeout(() => setCompletionPulse(false), 420)
     } catch (err) {
       setActionError(err.response?.data?.message || err.message || 'Unable to update this task.')
       if (err.response?.status === 401) onLogout?.()
@@ -68,10 +71,11 @@ const TaskItem = ({ task, onRefresh, onLogout, showCompleteCheckbox = true, onDe
 
   return (
     <>
-      <article className={`${TI_CLASSES.wrapper} ${getPriorityColor(task.priority)} ${className}`}>
+      <article className={`${TI_CLASSES.wrapper} stagger-in ${getPriorityColor(task.priority)} ${completionPulse ? 'completion-pop is-complete' : ''} ${className}`} style={{ '--stagger-delay': `${Math.min(index, 6) * 55}ms` }}>
         <div className={TI_CLASSES.leftContainer}>
           {showCompleteCheckbox && (
-            <button type="button" onClick={handleComplete} className={`${TI_CLASSES.completeBtn} ${isCompleted ? 'text-brand-green' : ''}`} aria-label={isCompleted ? `Mark ${task.title} as in progress` : `Mark ${task.title} as complete`}>
+            <button type="button" onClick={handleComplete} className={`${TI_CLASSES.completeBtn} icon-button ${isCompleted ? 'text-brand-green' : ''}`}
+ aria-label={isCompleted ? `Mark ${task.title} as in progress` : `Mark ${task.title} as complete`}>
               <CheckCircle2 className={`${TI_CLASSES.checkboxIconBase} ${isCompleted ? 'fill-green-100' : ''}`} aria-hidden="true" />
             </button>
           )}
@@ -87,7 +91,8 @@ const TaskItem = ({ task, onRefresh, onLogout, showCompleteCheckbox = true, onDe
 
         <div className={TI_CLASSES.rightContainer}>
           <div className="relative shrink-0">
-            <button type="button" onClick={() => setShowMenu((open) => !open)} className={TI_CLASSES.menuButton} aria-expanded={showMenu} aria-haspopup="menu" aria-label={`Actions for ${task.title}`}>
+            <button type="button" onClick={() => setShowMenu((open) => !open)} className={`${TI_CLASSES.menuButton} icon-button`}
+ aria-expanded={showMenu} aria-haspopup="menu" aria-label={`Actions for ${task.title}`}>
               <MoreVertical className="h-5 w-5" aria-hidden="true" />
             </button>
             {showMenu && (

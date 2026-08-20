@@ -79,9 +79,9 @@ const PendingTasks = () => {
             <p className="mt-1 text-sm text-brand-muted">No pending tasks right now.</p>
             <button type="button" onClick={() => setShowModal(true)} className={layoutClasses.emptyBtn}>Create new task</button>
           </div>
-        ) : sortedPendingTasks.map((task) => {
+        ) : sortedPendingTasks.map((task, index) => {
           const id = getTaskId(task)
-          return <TaskItem key={id} task={task} showCompleteCheckbox onDelete={() => handleDelete(id)} onToggleComplete={(completed) => handleToggleComplete(id, completed)} onEdit={() => { setSelectedTask(task); setShowModal(true) }} onRefresh={refreshTasks} />
+          return <TaskItem key={id} task={task} index={index} showCompleteCheckbox onDelete={() => handleDelete(id)} onToggleComplete={(completed) => handleToggleComplete(id, completed)} onEdit={() => { setSelectedTask(task); setShowModal(true) }} onRefresh={refreshTasks} />
         })}
       </div>
 

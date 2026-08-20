@@ -36,7 +36,7 @@ const CompletedTasks = () => {
       <div className={CT_CLASSES.list}>
         {sortedCompletedTasks.length === 0 ? (
           <div className={CT_CLASSES.emptyState}><div className={CT_CLASSES.emptyIconWrapper}><CheckCircle2 className="h-7 w-7" aria-hidden="true" /></div><h2 className={CT_CLASSES.emptyTitle}>No completed tasks yet</h2><p className={CT_CLASSES.emptyText}>Complete a task and it will appear here.</p></div>
-        ) : sortedCompletedTasks.map((task) => <TaskItem key={task.id || task._id} task={task} onRefresh={refreshTasks} showCompleteCheckbox />)}
+        ) : sortedCompletedTasks.map((task, index) => <TaskItem key={task.id || task._id} task={task} index={index} onRefresh={refreshTasks} showCompleteCheckbox />)}
       </div>
     </div>
   )

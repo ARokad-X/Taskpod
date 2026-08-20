@@ -51,6 +51,14 @@ The dashboard has clearer page hierarchy, a responsive stat grid, labeled filter
 
 The task dialog is now a responsive bottom sheet on small screens and a centered dialog on larger screens. It supports Escape dismissal, overlay dismissal, accessible labels, a scroll-safe max height, edit-safe date rules, clearer status controls, field limits, and consistent API error reporting. Authentication and profile screens now share the same visual language, provide explicit labels and autocomplete hints, remove debug logs, and maintain a clean compact layout at mobile widths.
 
+## UI/UX Pro Max enhancement pass
+
+The repository was reviewed with the referenced UI/UX Pro Max skill’s React/Vite design-system guidance and six-viewport heuristic audit. The selected direction keeps the existing Taskpods identity while using current, UX-friendly SaaS patterns: a calm flat workspace, floating translucent navigation, bento-like summary cards, progressive disclosure in mobile navigation, skeleton loading, bottom-sheet task creation on mobile, short spatial transitions, and meaningful completion feedback.
+
+The motion layer is deliberately restrained. Page and auth-card entrances use a short ease-out reveal, task cards arrive with a small stagger, hover states use a 2–3px lift and border emphasis, buttons provide a subtle press response, the mobile menu and task dialog enter spatially, the summary progress bar transitions smoothly, and completion receives a brief pulse. Essential information remains available without motion, and the global `prefers-reduced-motion` override disables non-essential animation and transitions.
+
+The UI/UX Pro Max heuristic audit was run against the local login route across 360px, 390px, 768px, 1024px, 1440px, and 1920px viewport tiers. The final result was **0 high, 0 medium, 0 low findings, and 0 console errors**. The audit’s remaining tap-target and contrast findings were fixed by sizing mobile controls and auth fields to at least 44px and changing the primary green to the accessible `#2F7D10` candidate while retaining the green brand family.
+
 ## Validation results
 
 | Check | Result | Evidence |
@@ -62,12 +70,13 @@ The task dialog is now a responsive bottom sheet on small screens and a centered
 | Browser login smoke test | Pass | `/login` rendered with semantic labels and responsive layout. |
 | Browser console smoke test | Pass | No uncaught errors or debug messages; only the normal React DevTools information message remained. |
 | Narrow viewport check | Pass | A 390×844 render showed no horizontal overflow, clipping, or cramped form controls. |
+| UI/UX Pro Max heuristic audit | Pass | Six viewport tiers returned 0 high, 0 medium, 0 low findings and 0 console errors. |
 
 The final browser smoke test did not execute authenticated CRUD requests because the repository’s production database credentials and a test account were not provided in the sandbox. The frontend task request/response paths were aligned with the repository’s Express/Prisma route contract, and all affected source modules were syntax-checked or built successfully.
 
 ## Changed files
 
-The implementation updates the application shell, navigation, task modal, task cards, dashboard, pending and completed views, profile, login, signup, global CSS, shared constants, and auth/task helper modules. It also repairs backend imports in the task controller, task router, user router, and user controller. The generated `mobile-login.png` is included as visual evidence, while `AUDIT_BASELINE.md` remains an internal working note and is not required to run the application.
+The implementation updates the application shell, navigation, task modal, task cards, dashboard, pending and completed views, profile, login, signup, global CSS, shared constants, and auth/task helper modules. It also repairs backend imports in the task controller, task router, user router, and user controller. The UI/UX Pro Max guidance and verification notes are included in `UIPRO_MAX_GUIDANCE.md` and `UIPRO_MAX_VERIFICATION.md`; the generated heuristic report is stored under `uipro-audit/`. The generated `mobile-login.png` and `AUDIT_BASELINE.md` remain local working artifacts and are not required to run the application.
 
 ## References
 

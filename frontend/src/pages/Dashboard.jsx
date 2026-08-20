@@ -100,7 +100,7 @@ const Dashboard = () => {
               <p className="mt-1 text-center text-sm text-brand-muted">{filter === 'all' ? 'Create your first task to get started.' : `There are no tasks in ${FILTER_LABELS[filter].toLowerCase()}.`}</p>
               <button type="button" onClick={() => setShowModal(true)} className={EMPTY_STATE.btn}>Add new task</button>
             </div>
-          ) : filteredTasks.map((task) => <TaskItem key={task.id || task._id} task={task} onRefresh={refreshTasks} showCompleteCheckbox onEdit={() => { setSelectedTask(task); setShowModal(true) }} />)}
+          ) : filteredTasks.map((task, index) => <TaskItem key={task.id || task._id} task={task} index={index} onRefresh={refreshTasks} showCompleteCheckbox onEdit={() => { setSelectedTask(task); setShowModal(true) }} />)}
         </div>
 
         <button type="button" onClick={() => setShowModal(true)} className="hidden w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm font-semibold text-brand-muted transition hover:border-brand-green hover:text-brand-green sm:flex"><Plus className="h-5 w-5" aria-hidden="true" /> Add another task</button>

@@ -98,8 +98,8 @@ const TaskModal = ({ isOpen, onClose, taskToEdit, onSave, onLogout }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) onClose() }}>
-      <section className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-white/80 bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) onClose() }}>
+      <section className="modal-panel max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-white/80 bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="mb-1 text-xs font-bold uppercase tracking-[.14em] text-brand-green">Workspace task</p>
