@@ -115,7 +115,7 @@ export const layoutClasses = {
 
 export const MENU_OPTIONS = [
   { action: 'edit', label: 'Edit task', icon: Edit2 },
-  { action: 'delete', label: 'Delete', icon: Trash2 },
+  { action: 'delete', label: 'Delete task', icon: Trash2 },
 ]
 export const TI_CLASSES = {
   wrapper: 'task-card flex flex-col gap-4 border-l-4 p-4 transition hover:-translate-y-0.5 sm:p-5 md:flex-row md:items-start md:justify-between',
@@ -130,7 +130,7 @@ export const TI_CLASSES = {
   progressBarFg: 'h-full rounded-full bg-brand-green transition-all duration-300',
   rightContainer: 'flex items-center justify-between gap-3 md:flex-col md:items-end',
   menuButton: 'rounded-lg p-2 text-brand-muted transition hover:bg-gray-100 hover:text-brand-green',
-  menuDropdown: 'absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl',
+  menuDropdown: 'absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl',
   dateRow: 'flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-brand-muted',
   createdRow: 'mt-1 flex items-center gap-1.5 whitespace-nowrap text-[10px] text-gray-400',
 }

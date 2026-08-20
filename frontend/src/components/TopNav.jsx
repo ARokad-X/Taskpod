@@ -1,6 +1,6 @@
 import { createElement, useState } from 'react'
 import { Menu, Plus, X, CheckCircle2, Home, ListChecks, UserCircle } from 'lucide-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: Home, end: true },
@@ -9,9 +9,8 @@ const navItems = [
   { path: '/profile', label: 'Profile', icon: UserCircle },
 ]
 
-const TopNav = ({ user, onLogout }) => {
+const TopNav = ({ onLogout }) => {
   const navigate = useNavigate()
-  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const goTo = (path, state) => {
@@ -53,10 +52,6 @@ const TopNav = ({ user, onLogout }) => {
 
         {menuOpen && (
           <div id="mobile-navigation" className="mobile-nav-panel">
-            <div className="mobile-user-card">
-              <div className="avatar" aria-hidden="true">{(user?.name || 'U').charAt(0).toUpperCase()}</div>
-              <div className="min-w-0"><p className="truncate font-semibold text-brand-text">{user?.name || 'User'}</p><p className="truncate text-xs text-brand-muted">{user?.email || 'Workspace member'}</p></div>
-            </div>
             {navItems.map(({ path, label, icon: Icon, end }) => (
               <NavLink key={path} to={path} end={end} onClick={() => setMenuOpen(false)} className={({ isActive }) => `mobile-nav-link ${isActive ? 'mobile-nav-link-active' : ''}`}>
                 {createElement(Icon, { className: 'h-4 w-4', 'aria-hidden': true })} {label}
@@ -66,7 +61,6 @@ const TopNav = ({ user, onLogout }) => {
           </div>
         )}
       </nav>
-      {location.pathname !== '/profile' && user && <div className="desktop-user" title={user.email || 'Signed in user'}><span className="avatar">{(user.name || 'U').charAt(0).toUpperCase()}</span><span className="hidden lg:inline">{user.name || 'User'}</span></div>}
     </header>
   )
 }

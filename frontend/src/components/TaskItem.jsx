@@ -90,7 +90,7 @@ const TaskItem = ({ task, onRefresh, onLogout, showCompleteCheckbox = true, onDe
         </div>
 
         <div className={TI_CLASSES.rightContainer}>
-          <div className="relative shrink-0">
+          <div className="task-menu-anchor shrink-0">
             <button type="button" onClick={() => setShowMenu((open) => !open)} className={`${TI_CLASSES.menuButton} icon-button`}
  aria-expanded={showMenu} aria-haspopup="menu" aria-label={`Actions for ${task.title}`}>
               <MoreVertical className="h-5 w-5" aria-hidden="true" />
